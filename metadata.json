@@ -1,0 +1,6 @@
+{
+  "name": "Paradim Agent",
+  "description": "Autonomous AI task management agent featuring hybrid fast/slow execution paths, persistent device knowledge, offline macro recording, biometrically gated credential vault, and reliable edge-case data sync logic.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

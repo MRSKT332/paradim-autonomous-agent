@@ -1,0 +1,127 @@
+package com.example.api
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import com.squareup.moshi.Json
+import okhttp3.OkHttpClient
+import retrofit2.Retrofit
+import retrofit2.converter.moshi.MoshiConverterFactory
+import retrofit2.http.Body
+import retrofit2.http.GET
+import retrofit2.http.POST
+import retrofit2.http.Path
+import retrofit2.http.Query
+import java.util.concurrent.TimeUnit
+
+data class TelegramSendMessageRequest(
+    @field:Json(name = "chat_id") val chatId: String,
+    @field:Json(name = "text") val text: String,
+    @field:Json(name = "parse_mode") val parseMode: String? = "Markdown"
+)
+
+data class TelegramUser(
+    @field:Json(name = "id") val id: Long,
+    @field:Json(name = "is_bot") val isBot: Boolean,
+    @field:Json(name = "first_name") val firstName: String,
+    @field:Json(name = "username") val username: String? = null
+)
+
+data class TelegramGetMeResponse(
+    @field:Json(name = "ok") val ok: Boolean,
+    @field:Json(name = "result") val result: TelegramUser? = null
+)
+
+data class TelegramSendMessageResponse(
+    @field:Json(name = "ok") val ok: Boolean,
+    @field:Json(name = "description") val description: String? = null
+)
+
+data class TelegramUpdateMessage(
+    @field:Json(name = "message_id") val messageId: Long,
+    @field:Json(name = "text") val text: String? = null,
+    @field:Json(name = "chat") val chat: TelegramChat? = null
+)
+
+data class TelegramChat(
+    @field:Json(name = "id") val id: Long,
+    @field:Json(name = "first_name") val firstName: String? = null
+)
+
+data class TelegramUpdate(
+    @field:Json(name = "update_id") val updateId: Long,
+    @field:Json(name = "message") val message: TelegramUpdateMessage? = null
+)
+
+data class TelegramGetUpdatesResponse(
+    @field:Json(name = "ok") val ok: Boolean,
+    @field:Json(name = "result") val result: List<TelegramUpdate>? = null
+)
+
+interface TelegramApi {
+    @GET("bot{token}/getMe")
+    suspend fun getMe(@Path("token") token: String): TelegramGetMeResponse
+
+    @POST("bot{token}/sendMessage")
+    suspend fun sendMessage(
+        @Path("token") token: String,
+        @Body request: TelegramSendMessageRequest
+    ): TelegramSendMessageResponse
+
+    @GET("bot{token}/getUpdates")
+    suspend fun getUpdates(
+        @Path("token") token: String,
+        @Query("offset") offset: Long? = null,
+        @Query("timeout") timeout: Int = 0
+    ): TelegramGetUpdatesResponse
+}
+
+object TelegramBotManager {
+    private const val BASE_URL = "https://api.telegram.org/"
+
+    private val okHttpClient = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .build()
+
+    private val retrofitService: TelegramApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(MoshiConverterFactory.create())
+            .build()
+            .create(TelegramApi::class.java)
+    }
+
+    suspend fun verifyBotToken(token: String): Result<TelegramUser> = withContext(Dispatchers.IO) {
+        try {
+            val response = retrofitService.getMe(token)
+            if (response.ok && response.result != null) {
+                Result.success(response.result)
+            } else {
+                Result.failure(Exception("Invalid Bot Token or Telegram API Error"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun sendTelegramNotification(token: String, chatId: String, message: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val req = TelegramSendMessageRequest(chatId = chatId, text = message)
+            val res = retrofitService.sendMessage(token, req)
+            res.ok
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun fetchLatestBotCommands(token: String, lastUpdateId: Long?): List<TelegramUpdate> = withContext(Dispatchers.IO) {
+        try {
+            val offset = if (lastUpdateId != null) lastUpdateId + 1 else null
+            val res = retrofitService.getUpdates(token = token, offset = offset)
+            if (res.ok) res.result ?: emptyList() else emptyList()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+}
