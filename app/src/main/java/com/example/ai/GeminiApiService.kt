@@ -10,6 +10,7 @@ import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.POST
 import retrofit2.http.Query
+import retrofit2.http.Url
 import java.util.concurrent.TimeUnit
 
 data class GeminiPart(
@@ -35,8 +36,9 @@ data class GeminiResponse(
 )
 
 interface GeminiApi {
-    @POST("v1beta/models/gemini-3.5-flash:generateContent")
+    @POST
     suspend fun generateContent(
+        @Url url: String,
         @Query("key") apiKey: String,
         @Body request: GeminiRequest
     ): GeminiResponse
@@ -60,16 +62,22 @@ object GeminiClient {
             .create(GeminiApi::class.java)
     }
 
-    suspend fun queryGemini(prompt: String, systemInstruction: String? = null): String = withContext(Dispatchers.IO) {
-        val apiKey = try {
-            BuildConfig.GEMINI_API_KEY
-        } catch (e: Exception) {
-            ""
-        }
+    suspend fun queryGemini(config: LlmConfiguration, prompt: String, systemInstruction: String? = null): String = withContext(Dispatchers.IO) {
+        val userKey = config.apiKey.trim()
+        val buildConfigKey = try { BuildConfig.GEMINI_API_KEY } catch (e: Exception) { "" }
+        val apiKey = if (userKey.isNotBlank()) userKey else buildConfigKey
 
         if (apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY") {
             return@withContext "DEMO_MODE"
         }
+
+        val modelName = if (config.modelName.isNotBlank() && config.modelName != "gemini-3.5-flash") {
+            config.modelName.trim()
+        } else {
+            "gemini-1.5-flash"
+        }
+
+        val endpoint = "https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent"
 
         try {
             val request = GeminiRequest(
@@ -80,11 +88,11 @@ object GeminiClient {
                     GeminiContent(parts = listOf(GeminiPart(text = it)))
                 }
             )
-            val response = service.generateContent(apiKey, request)
+            val response = service.generateContent(endpoint, apiKey, request)
             val text = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
-            text ?: "No text returned from Gemini API"
+            text ?: "No text returned from Gemini API ($modelName)"
         } catch (e: Exception) {
-            "API_ERROR: ${e.localizedMessage ?: e.message}"
+            "API_ERROR [Gemini $modelName]: ${e.localizedMessage ?: e.message}"
         }
     }
 }

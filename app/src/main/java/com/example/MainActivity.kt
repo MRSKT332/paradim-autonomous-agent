@@ -108,154 +108,122 @@ class MainActivity : ComponentActivity() {
                                     onStopTask = { viewModel.stopCurrentTask() }
                                 )
 
-                                NavigationBar(
+                                ScrollableTabRow(
+                                    selectedTabIndex = uiState.selectedTab,
                                     containerColor = MaterialTheme.colorScheme.surface,
-                                    tonalElevation = 8.dp,
+                                    contentColor = SproutPrimary,
+                                    edgePadding = 12.dp,
+                                    divider = {},
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .windowInsetsPadding(WindowInsets.navigationBars)
                                 ) {
-                                NavigationBarItem(
-                                    selected = uiState.selectedTab == 0,
-                                    onClick = { viewModel.setSelectedTab(0) },
-                                    icon = { Icon(Icons.Default.Chat, contentDescription = "Private Chat") },
-                                    label = { Text("Chat") },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = SproutPrimary,
-                                        selectedTextColor = SproutPrimary,
-                                        indicatorColor = SproutPrimary.copy(alpha = 0.2f),
-                                        unselectedIconColor = SproutTextMuted,
-                                        unselectedTextColor = SproutTextMuted
-                                    ),
-                                    modifier = Modifier.testTag("nav_tab_chat")
-                                )
+                                    Tab(
+                                        selected = uiState.selectedTab == 0,
+                                        onClick = { viewModel.setSelectedTab(0) },
+                                        icon = { Icon(Icons.Default.Chat, contentDescription = "Private Chat") },
+                                        text = { Text("Chat") },
+                                        selectedContentColor = SproutPrimary,
+                                        unselectedContentColor = SproutTextMuted,
+                                        modifier = Modifier.testTag("nav_tab_chat")
+                                    )
 
-                                NavigationBarItem(
-                                    selected = uiState.selectedTab == 1,
-                                    onClick = { viewModel.setSelectedTab(1) },
-                                    icon = { Icon(Icons.Default.SmartToy, contentDescription = "Autonomous Agent") },
-                                    label = { Text("Agent") },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = SproutPrimary,
-                                        selectedTextColor = SproutPrimary,
-                                        indicatorColor = SproutPrimary.copy(alpha = 0.2f),
-                                        unselectedIconColor = SproutTextMuted,
-                                        unselectedTextColor = SproutTextMuted
-                                    ),
-                                    modifier = Modifier.testTag("nav_tab_agent")
-                                )
+                                    Tab(
+                                        selected = uiState.selectedTab == 1,
+                                        onClick = { viewModel.setSelectedTab(1) },
+                                        icon = { Icon(Icons.Default.SmartToy, contentDescription = "Autonomous Agent") },
+                                        text = { Text("Agent") },
+                                        selectedContentColor = SproutPrimary,
+                                        unselectedContentColor = SproutTextMuted,
+                                        modifier = Modifier.testTag("nav_tab_agent")
+                                    )
 
-                                NavigationBarItem(
-                                    selected = uiState.selectedTab == 2,
-                                    onClick = { viewModel.setSelectedTab(2) },
-                                    icon = { Icon(Icons.Default.Tune, contentDescription = "Directives & Lock") },
-                                    label = { Text("Directives") },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = SproutPrimary,
-                                        selectedTextColor = SproutPrimary,
-                                        indicatorColor = SproutPrimary.copy(alpha = 0.2f),
-                                        unselectedIconColor = SproutTextMuted,
-                                        unselectedTextColor = SproutTextMuted
-                                    ),
-                                    modifier = Modifier.testTag("nav_tab_directives")
-                                )
+                                    Tab(
+                                        selected = uiState.selectedTab == 2,
+                                        onClick = { viewModel.setSelectedTab(2) },
+                                        icon = { Icon(Icons.Default.Tune, contentDescription = "Directives") },
+                                        text = { Text("Directives") },
+                                        selectedContentColor = SproutPrimary,
+                                        unselectedContentColor = SproutTextMuted,
+                                        modifier = Modifier.testTag("nav_tab_directives")
+                                    )
 
-                                NavigationBarItem(
-                                    selected = uiState.selectedTab == 3,
-                                    onClick = { viewModel.setSelectedTab(3) },
-                                    icon = { Icon(Icons.Default.Psychology, contentDescription = "AI Models") },
-                                    label = { Text("AI Models") },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = SproutPrimary,
-                                        selectedTextColor = SproutPrimary,
-                                        indicatorColor = SproutPrimary.copy(alpha = 0.2f),
-                                        unselectedIconColor = SproutTextMuted,
-                                        unselectedTextColor = SproutTextMuted
-                                    ),
-                                    modifier = Modifier.testTag("nav_tab_ai_models")
-                                )
+                                    Tab(
+                                        selected = uiState.selectedTab == 3,
+                                        onClick = { viewModel.setSelectedTab(3) },
+                                        icon = { Icon(Icons.Default.Psychology, contentDescription = "AI Models") },
+                                        text = { Text("AI Models") },
+                                        selectedContentColor = SproutPrimary,
+                                        unselectedContentColor = SproutTextMuted,
+                                        modifier = Modifier.testTag("nav_tab_ai_models")
+                                    )
 
-                                NavigationBarItem(
-                                    selected = uiState.selectedTab == 4,
-                                    onClick = { viewModel.setSelectedTab(4) },
-                                    icon = {
-                                        BadgedBox(
-                                            badge = {
-                                                if (uiState.isTelegramConnected) {
-                                                    Badge(containerColor = SproutEmerald) {
-                                                        Text("ON")
+                                    Tab(
+                                        selected = uiState.selectedTab == 4,
+                                        onClick = { viewModel.setSelectedTab(4) },
+                                        icon = {
+                                            BadgedBox(
+                                                badge = {
+                                                    if (uiState.isTelegramConnected) {
+                                                        Badge(containerColor = SproutEmerald) {
+                                                            Text("ON")
+                                                        }
                                                     }
                                                 }
+                                            ) {
+                                                Icon(Icons.Default.SendToMobile, contentDescription = "Telegram API")
                                             }
-                                        ) {
-                                            Icon(Icons.Default.SendToMobile, contentDescription = "Telegram API")
-                                        }
-                                    },
-                                    label = { Text("Telegram") },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = SproutAmber,
-                                        selectedTextColor = SproutAmber,
-                                        indicatorColor = SproutAmber.copy(alpha = 0.2f),
-                                        unselectedIconColor = SproutTextMuted,
-                                        unselectedTextColor = SproutTextMuted
-                                    ),
-                                    modifier = Modifier.testTag("nav_tab_telegram")
-                                )
+                                        },
+                                        text = { Text("Telegram") },
+                                        selectedContentColor = SproutAmber,
+                                        unselectedContentColor = SproutTextMuted,
+                                        modifier = Modifier.testTag("nav_tab_telegram")
+                                    )
 
-                                NavigationBarItem(
-                                    selected = uiState.selectedTab == 5,
-                                    onClick = { viewModel.setSelectedTab(5) },
-                                    icon = {
-                                        BadgedBox(
-                                            badge = {
-                                                if (!isAccessibilityActive) {
-                                                    Badge(containerColor = SproutAmber) {
-                                                        Text("!")
+                                    Tab(
+                                        selected = uiState.selectedTab == 5,
+                                        onClick = { viewModel.setSelectedTab(5) },
+                                        icon = {
+                                            BadgedBox(
+                                                badge = {
+                                                    if (!isAccessibilityActive) {
+                                                        Badge(containerColor = SproutAmber) {
+                                                            Text("!")
+                                                        }
                                                     }
                                                 }
+                                            ) {
+                                                Icon(Icons.Default.Shield, contentDescription = "Permissions")
                                             }
-                                        ) {
-                                            Icon(Icons.Default.Shield, contentDescription = "Permissions")
-                                        }
-                                    },
-                                    label = { Text("Perms") },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = SproutPrimary,
-                                        selectedTextColor = SproutPrimary,
-                                        indicatorColor = SproutPrimary.copy(alpha = 0.2f),
-                                        unselectedIconColor = SproutTextMuted,
-                                        unselectedTextColor = SproutTextMuted
-                                    ),
-                                    modifier = Modifier.testTag("nav_tab_permissions")
-                                )
+                                        },
+                                        text = { Text("Perms") },
+                                        selectedContentColor = SproutPrimary,
+                                        unselectedContentColor = SproutTextMuted,
+                                        modifier = Modifier.testTag("nav_tab_permissions")
+                                    )
 
-                                NavigationBarItem(
-                                    selected = uiState.selectedTab == 6,
-                                    onClick = { viewModel.setSelectedTab(6) },
-                                    icon = {
-                                        BadgedBox(
-                                            badge = {
-                                                if (syncHealth.pendingQueueCount > 0) {
-                                                    Badge(containerColor = SproutAmber) {
-                                                        Text("${syncHealth.pendingQueueCount}")
+                                    Tab(
+                                        selected = uiState.selectedTab == 6,
+                                        onClick = { viewModel.setSelectedTab(6) },
+                                        icon = {
+                                            BadgedBox(
+                                                badge = {
+                                                    if (syncHealth.pendingQueueCount > 0) {
+                                                        Badge(containerColor = SproutAmber) {
+                                                            Text("${syncHealth.pendingQueueCount}")
+                                                        }
                                                     }
                                                 }
+                                            ) {
+                                                Icon(Icons.Default.CloudSync, contentDescription = "Sync Engine")
                                             }
-                                        ) {
-                                            Icon(Icons.Default.CloudSync, contentDescription = "Sync Engine")
-                                        }
-                                    },
-                                    label = { Text("Sync") },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = SproutPrimary,
-                                        selectedTextColor = SproutPrimary,
-                                        indicatorColor = SproutPrimary.copy(alpha = 0.2f),
-                                        unselectedIconColor = SproutTextMuted,
-                                        unselectedTextColor = SproutTextMuted
-                                    ),
-                                    modifier = Modifier.testTag("nav_tab_sync")
-                                )
-                            }
+                                        },
+                                        text = { Text("Sync") },
+                                        selectedContentColor = SproutPrimary,
+                                        unselectedContentColor = SproutTextMuted,
+                                        modifier = Modifier.testTag("nav_tab_sync")
+                                    )
+                                }
                         }
                     },
                     snackbarHost = { SnackbarHost(snackbarHostState) }

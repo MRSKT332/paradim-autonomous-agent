@@ -66,7 +66,7 @@ fun AiModelConfigScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
-        contentPadding = PaddingValues(bottom = 120.dp),
+        contentPadding = PaddingValues(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Header

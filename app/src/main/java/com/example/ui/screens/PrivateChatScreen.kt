@@ -192,7 +192,7 @@ fun PrivateChatScreen(
             border = BorderStroke(1.dp, CyanPrimary.copy(alpha = 0.4f)),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 100.dp)
+                .padding(bottom = 16.dp)
         ) {
             Row(
                 modifier = Modifier

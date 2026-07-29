@@ -37,7 +37,13 @@ fun VoiceCommandOverlay(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var spokenText by remember(transcript) { mutableStateOf(transcript) }
+    var spokenText by remember { mutableStateOf(transcript) }
+
+    LaunchedEffect(transcript) {
+        if (transcript.isNotBlank() && transcript != spokenText) {
+            spokenText = transcript
+        }
+    }
 
     val voicePresets = listOf(
         "open YouTube and search Indies got latent",

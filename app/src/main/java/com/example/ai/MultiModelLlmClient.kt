@@ -63,12 +63,20 @@ object MultiModelLlmClient {
         systemInstruction: String? = null
     ): String = withContext(Dispatchers.IO) {
         if (config.provider == LlmProvider.GEMINI) {
-            return@withContext GeminiClient.queryGemini(prompt, systemInstruction)
+            return@withContext GeminiClient.queryGemini(config, prompt, systemInstruction)
         }
 
         try {
-            val endpointUrl = if (config.baseUrl.endsWith("/")) "${config.baseUrl}chat/completions" else "${config.baseUrl}/chat/completions"
-            val authHeader = if (config.apiKey.isNotBlank()) "Bearer ${config.apiKey}" else null
+            val cleanBase = config.baseUrl.trim()
+            val endpointUrl = when {
+                cleanBase.endsWith("/chat/completions") -> cleanBase
+                cleanBase.endsWith("/chat/completions/") -> cleanBase.removeSuffix("/")
+                cleanBase.endsWith("/") -> "${cleanBase}chat/completions"
+                else -> "${cleanBase}/chat/completions"
+            }
+
+            val rawKey = config.apiKey.trim()
+            val authHeader = if (rawKey.isNotBlank()) "Bearer $rawKey" else null
 
             val messages = mutableListOf<ChatMessage>()
             if (!systemInstruction.isNullOrBlank()) {
@@ -77,7 +85,7 @@ object MultiModelLlmClient {
             messages.add(ChatMessage(role = "user", content = prompt))
 
             val req = OpenAiChatRequest(
-                model = config.modelName.ifBlank { config.provider.defaultModel },
+                model = config.modelName.trim().ifBlank { config.provider.defaultModel },
                 messages = messages
             )
 

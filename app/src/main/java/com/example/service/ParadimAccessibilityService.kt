@@ -29,6 +29,8 @@ class ParadimAccessibilityService : AccessibilityService() {
 
     private val serviceScope = CoroutineScope(Dispatchers.Main)
 
+    private var lastAdCheckTimestamp: Long = 0L
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
@@ -37,12 +39,11 @@ class ParadimAccessibilityService : AccessibilityService() {
         val info = AccessibilityServiceInfo().apply {
             eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
                     AccessibilityEvent.TYPE_VIEW_CLICKED or
-                    AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED or
-                    AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
+                    AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
             flags = AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS or
                     AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
-            notificationTimeout = 100
+            notificationTimeout = 300
         }
         serviceInfo = info
     }
@@ -50,10 +51,23 @@ class ParadimAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
 
+        val pkgName = event.packageName?.toString() ?: ""
+        // Never process accessibility events on our own app to avoid focus stealing & UI lag
+        if (pkgName.contains("com.example") || pkgName.contains("com.aistudio")) {
+            return
+        }
+
         val textList = event.text
         if (textList.isNotEmpty()) {
             _latestCapturedNodeText.value = textList.joinToString(" ")
         }
+
+        // Throttle ad checks to avoid main-thread scrolling lockups
+        val now = System.currentTimeMillis()
+        if (now - lastAdCheckTimestamp < 1000L && event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            return
+        }
+        lastAdCheckTimestamp = now
 
         // Active Auto Ad-Skipper for YouTube, Spotify & Media Apps
         val rootNode = rootInActiveWindow ?: return
