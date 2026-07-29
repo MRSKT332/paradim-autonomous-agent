@@ -56,6 +56,7 @@ class MainActivity : ComponentActivity() {
 
                 val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
                 val scope = rememberCoroutineScope()
+                val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
                 val snackbarHostState = remember { SnackbarHostState() }
 
                 LaunchedEffect(uiState.snackbarMessage) {
@@ -120,7 +121,7 @@ class MainActivity : ComponentActivity() {
                                 ) {
                                     Tab(
                                         selected = uiState.selectedTab == 0,
-                                        onClick = { viewModel.setSelectedTab(0) },
+                                        onClick = { focusManager.clearFocus(); viewModel.setSelectedTab(0) },
                                         icon = { Icon(Icons.Default.Chat, contentDescription = "Private Chat") },
                                         text = { Text("Chat") },
                                         selectedContentColor = SproutPrimary,
@@ -130,7 +131,7 @@ class MainActivity : ComponentActivity() {
 
                                     Tab(
                                         selected = uiState.selectedTab == 1,
-                                        onClick = { viewModel.setSelectedTab(1) },
+                                        onClick = { focusManager.clearFocus(); viewModel.setSelectedTab(1) },
                                         icon = { Icon(Icons.Default.SmartToy, contentDescription = "Autonomous Agent") },
                                         text = { Text("Agent") },
                                         selectedContentColor = SproutPrimary,
@@ -140,7 +141,7 @@ class MainActivity : ComponentActivity() {
 
                                     Tab(
                                         selected = uiState.selectedTab == 2,
-                                        onClick = { viewModel.setSelectedTab(2) },
+                                        onClick = { focusManager.clearFocus(); viewModel.setSelectedTab(2) },
                                         icon = { Icon(Icons.Default.Tune, contentDescription = "Directives") },
                                         text = { Text("Directives") },
                                         selectedContentColor = SproutPrimary,
@@ -150,7 +151,7 @@ class MainActivity : ComponentActivity() {
 
                                     Tab(
                                         selected = uiState.selectedTab == 3,
-                                        onClick = { viewModel.setSelectedTab(3) },
+                                        onClick = { focusManager.clearFocus(); viewModel.setSelectedTab(3) },
                                         icon = { Icon(Icons.Default.Psychology, contentDescription = "AI Models") },
                                         text = { Text("AI Models") },
                                         selectedContentColor = SproutPrimary,
@@ -160,7 +161,7 @@ class MainActivity : ComponentActivity() {
 
                                     Tab(
                                         selected = uiState.selectedTab == 4,
-                                        onClick = { viewModel.setSelectedTab(4) },
+                                        onClick = { focusManager.clearFocus(); viewModel.setSelectedTab(4) },
                                         icon = {
                                             BadgedBox(
                                                 badge = {
@@ -182,7 +183,7 @@ class MainActivity : ComponentActivity() {
 
                                     Tab(
                                         selected = uiState.selectedTab == 5,
-                                        onClick = { viewModel.setSelectedTab(5) },
+                                        onClick = { focusManager.clearFocus(); viewModel.setSelectedTab(5) },
                                         icon = {
                                             BadgedBox(
                                                 badge = {
@@ -204,7 +205,7 @@ class MainActivity : ComponentActivity() {
 
                                     Tab(
                                         selected = uiState.selectedTab == 6,
-                                        onClick = { viewModel.setSelectedTab(6) },
+                                        onClick = { focusManager.clearFocus(); viewModel.setSelectedTab(6) },
                                         icon = {
                                             BadgedBox(
                                                 badge = {

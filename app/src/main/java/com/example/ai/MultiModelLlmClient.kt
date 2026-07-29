@@ -20,7 +20,9 @@ data class ChatMessage(
 data class OpenAiChatRequest(
     @field:Json(name = "model") val model: String,
     @field:Json(name = "messages") val messages: List<ChatMessage>,
-    @field:Json(name = "temperature") val temperature: Double = 0.3
+    @field:Json(name = "temperature") val temperature: Double = 0.5,
+    @field:Json(name = "max_tokens") val maxTokens: Int = 1024,
+    @field:Json(name = "top_p") val topP: Double = 1.0
 )
 
 data class ChatChoice(
@@ -92,6 +94,10 @@ object MultiModelLlmClient {
             val res = api.createChatCompletion(endpointUrl, authHeader, req)
             val replyText = res.choices?.firstOrNull()?.message?.content
             replyText ?: "No response from ${config.provider.displayName}"
+        } catch (e: retrofit2.HttpException) {
+            val errorBodyStr = try { e.response()?.errorBody()?.string() } catch (ex: Exception) { null }
+            val detail = if (!errorBodyStr.isNullOrBlank()) errorBodyStr else e.message()
+            "API_ERROR [${config.provider.name} HTTP ${e.code()}]: $detail"
         } catch (e: Exception) {
             "API_ERROR [${config.provider.name}]: ${e.localizedMessage ?: e.message}"
         }

@@ -51,9 +51,14 @@ class ParadimAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
 
-        val pkgName = event.packageName?.toString() ?: ""
-        // Never process accessibility events on our own app to avoid focus stealing & UI lag
-        if (pkgName.contains("com.example") || pkgName.contains("com.aistudio")) {
+        val pkgName = event.packageName?.toString()?.lowercase() ?: ""
+        // Never process accessibility events on our own app or non-media apps to avoid UI lag
+        if (pkgName.isEmpty() || pkgName.contains("com.example") || pkgName.contains("com.aistudio") || pkgName.contains("android.launcher") || pkgName.contains("systemui")) {
+            return
+        }
+
+        // Only inspect for video/media ads on YouTube, Spotify, and music apps
+        if (!pkgName.contains("youtube") && !pkgName.contains("spotify") && !pkgName.contains("music") && !pkgName.contains("vlc")) {
             return
         }
 
