@@ -13,6 +13,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.security.SecurityPolicyManager
 import com.example.system.DeviceAppIndexer
+import com.example.system.InstalledAppInfo
 import com.example.ui.components.PatternLockView
 import com.example.ui.theme.*
 
@@ -45,7 +48,11 @@ fun SystemPromptAndSecurityScreen(
     var showPatternTester by remember { mutableStateOf(false) }
     var patternTestResult by remember { mutableStateOf<Boolean?>(null) }
 
-    val installedApps = remember(context) { DeviceAppIndexer.getInstalledApps(context) }
+    val installedApps by produceState<List<InstalledAppInfo>>(initialValue = emptyList(), context) {
+        value = withContext(Dispatchers.IO) {
+            DeviceAppIndexer.getInstalledApps(context)
+        }
+    }
 
     LazyColumn(
         modifier = modifier

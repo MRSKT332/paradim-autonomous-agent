@@ -79,33 +79,31 @@ class ParadimAccessibilityService : AccessibilityService() {
         checkAndSkipAds(rootNode)
     }
 
-    private fun checkAndSkipAds(node: AccessibilityNodeInfo) {
-        val nodeText = node.text?.toString() ?: ""
-        val contentDesc = node.contentDescription?.toString() ?: ""
-        val viewId = node.viewIdResourceName ?: ""
-
-        // Common ad-skip button triggers across YouTube & Video Apps
-        val isSkipTrigger = nodeText.contains("Skip Ad", ignoreCase = true) ||
-                nodeText.contains("Skip Ads", ignoreCase = true) ||
-                nodeText.equals("Skip", ignoreCase = true) ||
-                contentDesc.contains("Skip Ad", ignoreCase = true) ||
-                viewId.contains("skip_ad_button", ignoreCase = true) ||
-                viewId.contains("ad_skip_button", ignoreCase = true)
-
-        if (isSkipTrigger && (node.isClickable || node.parent?.isClickable == true)) {
-            val target = if (node.isClickable) node else node.parent
-            val clicked = target?.performAction(AccessibilityNodeInfo.ACTION_CLICK) ?: false
-            if (clicked) {
-                _adSkippedCount.value = _adSkippedCount.value + 1
+    private fun checkAndSkipAds(rootNode: AccessibilityNodeInfo) {
+        val keywords = listOf("Skip Ad", "Skip Ads", "Skip")
+        for (kw in keywords) {
+            val nodes = rootNode.findAccessibilityNodeInfosByText(kw) ?: continue
+            for (node in nodes) {
+                val target = if (node.isClickable) node else if (node.parent?.isClickable == true) node.parent else null
+                if (target != null) {
+                    val clicked = target.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                    if (clicked) {
+                        _adSkippedCount.value = _adSkippedCount.value + 1
+                        return
+                    }
+                }
             }
-            return
         }
 
-        // Traverse child nodes
-        for (i in 0 until node.childCount) {
-            val child = node.getChild(i) ?: continue
-            checkAndSkipAds(child)
-            child.recycle()
+        val adViewIds = listOf("skip_ad_button", "ad_skip_button")
+        for (vid in adViewIds) {
+            val nodes = rootNode.findAccessibilityNodeInfosByViewId("com.google.android.youtube:id/$vid") ?: continue
+            for (node in nodes) {
+                if (node.isClickable && node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                    _adSkippedCount.value = _adSkippedCount.value + 1
+                    return
+                }
+            }
         }
     }
 
