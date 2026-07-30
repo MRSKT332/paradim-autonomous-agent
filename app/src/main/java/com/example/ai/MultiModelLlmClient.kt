@@ -1,6 +1,9 @@
 package com.example.ai
 
 import com.squareup.moshi.Json
+import com.squareup.moshi.JsonClass
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -12,11 +15,13 @@ import retrofit2.http.POST
 import retrofit2.http.Url
 import java.util.concurrent.TimeUnit
 
+@JsonClass(generateAdapter = true)
 data class ChatMessage(
-    @field:Json(name = "role") val role: String,
-    @field:Json(name = "content") val content: String
+    @field:Json(name = "role") val role: String = "user",
+    @field:Json(name = "content") val content: String? = ""
 )
 
+@JsonClass(generateAdapter = true)
 data class OpenAiChatRequest(
     @field:Json(name = "model") val model: String,
     @field:Json(name = "messages") val messages: List<ChatMessage>,
@@ -25,12 +30,14 @@ data class OpenAiChatRequest(
     @field:Json(name = "top_p") val topP: Double = 1.0
 )
 
+@JsonClass(generateAdapter = true)
 data class ChatChoice(
-    @field:Json(name = "message") val message: ChatMessage?
+    @field:Json(name = "message") val message: ChatMessage? = null
 )
 
+@JsonClass(generateAdapter = true)
 data class OpenAiChatResponse(
-    @field:Json(name = "choices") val choices: List<ChatChoice>?
+    @field:Json(name = "choices") val choices: List<ChatChoice>? = null
 )
 
 interface OpenAiCompatibleApi {
@@ -44,6 +51,10 @@ interface OpenAiCompatibleApi {
 
 object MultiModelLlmClient {
 
+    private val moshi: Moshi = Moshi.Builder()
+        .addLast(KotlinJsonAdapterFactory())
+        .build()
+
     private val okHttpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -54,7 +65,7 @@ object MultiModelLlmClient {
         Retrofit.Builder()
             .baseUrl("https://api.openai.com/") // Placeholder base URL, @Url overrides
             .client(okHttpClient)
-            .addConverterFactory(MoshiConverterFactory.create())
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
             .create(OpenAiCompatibleApi::class.java)
     }

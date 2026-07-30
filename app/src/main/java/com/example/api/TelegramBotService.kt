@@ -3,6 +3,9 @@ package com.example.api
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.squareup.moshi.Json
+import com.squareup.moshi.JsonClass
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
@@ -13,12 +16,14 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
 
+@JsonClass(generateAdapter = true)
 data class TelegramSendMessageRequest(
     @field:Json(name = "chat_id") val chatId: String,
     @field:Json(name = "text") val text: String,
-    @field:Json(name = "parse_mode") val parseMode: String? = "Markdown"
+    @field:Json(name = "parse_mode") val parseMode: String? = null
 )
 
+@JsonClass(generateAdapter = true)
 data class TelegramUser(
     @field:Json(name = "id") val id: Long,
     @field:Json(name = "is_bot") val isBot: Boolean,
@@ -26,32 +31,38 @@ data class TelegramUser(
     @field:Json(name = "username") val username: String? = null
 )
 
+@JsonClass(generateAdapter = true)
 data class TelegramGetMeResponse(
     @field:Json(name = "ok") val ok: Boolean,
     @field:Json(name = "result") val result: TelegramUser? = null
 )
 
+@JsonClass(generateAdapter = true)
 data class TelegramSendMessageResponse(
     @field:Json(name = "ok") val ok: Boolean,
     @field:Json(name = "description") val description: String? = null
 )
 
+@JsonClass(generateAdapter = true)
 data class TelegramUpdateMessage(
     @field:Json(name = "message_id") val messageId: Long,
     @field:Json(name = "text") val text: String? = null,
     @field:Json(name = "chat") val chat: TelegramChat? = null
 )
 
+@JsonClass(generateAdapter = true)
 data class TelegramChat(
     @field:Json(name = "id") val id: Long,
     @field:Json(name = "first_name") val firstName: String? = null
 )
 
+@JsonClass(generateAdapter = true)
 data class TelegramUpdate(
     @field:Json(name = "update_id") val updateId: Long,
     @field:Json(name = "message") val message: TelegramUpdateMessage? = null
 )
 
+@JsonClass(generateAdapter = true)
 data class TelegramGetUpdatesResponse(
     @field:Json(name = "ok") val ok: Boolean,
     @field:Json(name = "result") val result: List<TelegramUpdate>? = null
@@ -78,6 +89,10 @@ interface TelegramApi {
 object TelegramBotManager {
     private const val BASE_URL = "https://api.telegram.org/"
 
+    private val moshi: Moshi = Moshi.Builder()
+        .addLast(KotlinJsonAdapterFactory())
+        .build()
+
     private val okHttpClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
@@ -87,7 +102,7 @@ object TelegramBotManager {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
-            .addConverterFactory(MoshiConverterFactory.create())
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
             .create(TelegramApi::class.java)
     }

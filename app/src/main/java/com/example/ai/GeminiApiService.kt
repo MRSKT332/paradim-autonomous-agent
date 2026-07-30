@@ -2,6 +2,9 @@ package com.example.ai
 
 import com.example.BuildConfig
 import com.squareup.moshi.Json
+import com.squareup.moshi.JsonClass
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -13,24 +16,29 @@ import retrofit2.http.Query
 import retrofit2.http.Url
 import java.util.concurrent.TimeUnit
 
+@JsonClass(generateAdapter = true)
 data class GeminiPart(
     @field:Json(name = "text") val text: String? = null
 )
 
+@JsonClass(generateAdapter = true)
 data class GeminiContent(
     @field:Json(name = "parts") val parts: List<GeminiPart>,
     @field:Json(name = "role") val role: String = "user"
 )
 
+@JsonClass(generateAdapter = true)
 data class GeminiRequest(
     @field:Json(name = "contents") val contents: List<GeminiContent>,
     @field:Json(name = "systemInstruction") val systemInstruction: GeminiContent? = null
 )
 
+@JsonClass(generateAdapter = true)
 data class GeminiCandidate(
     @field:Json(name = "content") val content: GeminiContent? = null
 )
 
+@JsonClass(generateAdapter = true)
 data class GeminiResponse(
     @field:Json(name = "candidates") val candidates: List<GeminiCandidate>? = null
 )
@@ -47,6 +55,10 @@ interface GeminiApi {
 object GeminiClient {
     private const val BASE_URL = "https://generativelanguage.googleapis.com/"
 
+    private val moshi: Moshi = Moshi.Builder()
+        .addLast(KotlinJsonAdapterFactory())
+        .build()
+
     private val okHttpClient = OkHttpClient.Builder()
         .connectTimeout(60, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
@@ -57,7 +69,7 @@ object GeminiClient {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
-            .addConverterFactory(MoshiConverterFactory.create())
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
             .create(GeminiApi::class.java)
     }
