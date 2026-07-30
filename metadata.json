@@ -1,0 +1,6 @@
+{
+  "name": "Paradim Agent",
+  "description": "Autonomous AI task management agent featuring v1.1.4 performance lag fixes, 1-tap RAM optimizer, 24h news digest, hybrid fast/slow execution paths, offline macro recording, credential vault, and edge-case sync engine.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
