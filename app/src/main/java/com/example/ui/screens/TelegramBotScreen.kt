@@ -30,6 +30,7 @@ fun TelegramBotScreen(
     isConnected: Boolean,
     botName: String?,
     isTesting: Boolean,
+    errorMessage: String? = null,
     onTokenChanged: (String) -> Unit,
     onChatIdChanged: (String) -> Unit,
     onTestConnect: () -> Unit,
@@ -188,6 +189,34 @@ fun TelegramBotScreen(
                             Icon(imageVector = Icons.Default.Api, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Test & Pair Telegram Bot")
+                        }
+                    }
+
+                    if (!errorMessage.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ErrorOutline,
+                                    contentDescription = "Error",
+                                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = errorMessage,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
                         }
                     }
                 }

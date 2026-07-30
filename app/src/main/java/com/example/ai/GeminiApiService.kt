@@ -5,6 +5,7 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -30,7 +31,7 @@ data class GeminiContent(
 @JsonClass(generateAdapter = true)
 data class GeminiRequest(
     @field:Json(name = "contents") val contents: List<GeminiContent>,
-    @field:Json(name = "systemInstruction") val systemInstruction: GeminiContent? = null
+    @field:Json(name = "system_instruction") val systemInstruction: GeminiContent? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -104,15 +105,22 @@ object GeminiClient {
                 contents = listOf(
                     GeminiContent(parts = listOf(GeminiPart(text = prompt)))
                 ),
-                systemInstruction = systemInstruction?.let {
+                systemInstruction = systemInstruction?.takeIf { it.isNotBlank() }?.let {
                     GeminiContent(parts = listOf(GeminiPart(text = it)))
                 }
             )
+            Log.d("GeminiClient", "Sending request to $endpoint with apiKey keyLength=${apiKey.length}")
             val response = service.generateContent(endpoint, apiKey, request)
             val text = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
             text ?: "No text returned from Gemini API ($modelName)"
+        } catch (e: retrofit2.HttpException) {
+            val errorBodyStr = try { e.response()?.errorBody()?.string() } catch (ex: Exception) { null }
+            Log.e("GeminiClient", "queryGemini HTTP Exception code=${e.code()} msg=${e.message()} body=$errorBodyStr", e)
+            val detail = if (!errorBodyStr.isNullOrBlank()) errorBodyStr else e.message()
+            "API_ERROR [Gemini $modelName HTTP ${e.code()}]: $detail"
         } catch (e: Exception) {
-            "API_ERROR [Gemini $modelName]: ${e.localizedMessage ?: e.message}"
+            Log.e("GeminiClient", "queryGemini Exception: ${e.localizedMessage}", e)
+            "API_ERROR [Gemini $modelName ${e.javaClass.simpleName}]: ${e.localizedMessage ?: e.message}\n${Log.getStackTraceString(e)}"
         }
     }
 }

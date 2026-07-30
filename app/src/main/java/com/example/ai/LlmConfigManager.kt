@@ -2,6 +2,7 @@ package com.example.ai
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 
 enum class LlmProvider(
     val displayName: String,
@@ -10,7 +11,7 @@ enum class LlmProvider(
     val presetModels: List<String> = emptyList()
 ) {
     POLLINATIONS_AI(
-        "Pollinations AI (100% Free - No Key)",
+        "Pollinations AI (Optional API Key)",
         "https://text.pollinations.ai/openai/",
         "openai",
         listOf("openai", "mistral", "qwen", "llama", "deepseek")
@@ -83,8 +84,8 @@ object LlmConfigManager {
 
     private var cachedConfig: LlmConfiguration? = null
 
-    fun getConfig(context: Context): LlmConfiguration {
-        if (cachedConfig != null) return cachedConfig!!
+    fun getConfig(context: Context, forceReload: Boolean = false): LlmConfiguration {
+        if (!forceReload && cachedConfig != null) return cachedConfig!!
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val providerStr = prefs.getString(KEY_PROVIDER, LlmProvider.GEMINI.name) ?: LlmProvider.GEMINI.name
         val provider = try { LlmProvider.valueOf(providerStr) } catch (e: Exception) { LlmProvider.GEMINI }
@@ -92,8 +93,10 @@ object LlmConfigManager {
         val baseUrl = prefs.getString(KEY_BASE_URL, provider.defaultBaseUrl) ?: provider.defaultBaseUrl
         val modelName = prefs.getString(KEY_MODEL_NAME, provider.defaultModel) ?: provider.defaultModel
 
-        cachedConfig = LlmConfiguration(provider, apiKey, baseUrl, modelName)
-        return cachedConfig!!
+        val loaded = LlmConfiguration(provider, apiKey, baseUrl, modelName)
+        cachedConfig = loaded
+        Log.d("LlmConfigManager", "Loaded config: provider=${loaded.provider.name}, model=${loaded.modelName}, keyLength=${loaded.apiKey.length}")
+        return loaded
     }
 
     fun saveConfig(context: Context, config: LlmConfiguration) {
@@ -105,5 +108,6 @@ object LlmConfigManager {
             .putString(KEY_BASE_URL, config.baseUrl)
             .putString(KEY_MODEL_NAME, config.modelName)
             .apply()
+        Log.d("LlmConfigManager", "Saved config: provider=${config.provider.name}, model=${config.modelName}, keyLength=${config.apiKey.length}")
     }
 }

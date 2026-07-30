@@ -288,6 +288,7 @@ class MainActivity : ComponentActivity() {
                                         isConnected = uiState.isTelegramConnected,
                                         botName = uiState.telegramBotName,
                                         isTesting = uiState.isTestingTelegram,
+                                        errorMessage = uiState.telegramErrorMessage,
                                         onTokenChanged = { viewModel.onTelegramTokenChanged(it) },
                                         onChatIdChanged = { viewModel.onTelegramChatIdChanged(it) },
                                         onTestConnect = { viewModel.testAndConnectTelegramBot() },

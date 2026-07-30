@@ -69,6 +69,10 @@ fun AiModelConfigScreen(
         onConfigUpdated()
     }
 
+    LaunchedEffect(selectedProvider, apiKeyInput, baseUrlInput, modelNameInput) {
+        saveSettings()
+    }
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()

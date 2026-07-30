@@ -4,6 +4,7 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -76,19 +77,27 @@ object MultiModelLlmClient {
     }
 
     fun cleanApiKey(key: String): String {
-        var k = key.trim().removeSurrounding("\"").removeSurrounding("'")
+        var k = key.replace("\r", "").replace("\n", "").trim().removeSurrounding("\"").removeSurrounding("'")
         if (k.startsWith("Bearer ", ignoreCase = true)) {
             k = k.substring(7).trim()
         }
         return k
     }
 
+    fun maskKey(key: String): String {
+        val clean = cleanApiKey(key)
+        if (clean.isBlank()) return "<NONE>"
+        return if (clean.length > 4) "***" + clean.takeLast(4) else "***"
+    }
+
     suspend fun queryPollinationsAiText(
         prompt: String,
         systemInstruction: String? = null,
-        model: String = "openai"
+        model: String = "openai",
+        apiKey: String = ""
     ): String = withContext(Dispatchers.IO) {
         try {
+            val cleanKey = cleanApiKey(apiKey)
             val jsonBody = JSONObject().apply {
                 val msgs = JSONArray()
                 if (!systemInstruction.isNullOrBlank()) {
@@ -106,10 +115,18 @@ object MultiModelLlmClient {
             }
 
             val requestBody = jsonBody.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
-            val request = Request.Builder()
+            val reqBuilder = Request.Builder()
                 .url("https://text.pollinations.ai/openai/")
                 .post(requestBody)
-                .build()
+
+            if (cleanKey.isNotBlank()) {
+                reqBuilder.header("Authorization", "Bearer $cleanKey")
+                Log.d("MultiModelLlmClient", "Pollinations request using Authorization token: ${maskKey(cleanKey)}")
+            } else {
+                Log.d("MultiModelLlmClient", "Pollinations request sent without API key")
+            }
+
+            val request = reqBuilder.build()
 
             okHttpClient.newCall(request).execute().use { response ->
                 val bodyStr = response.body?.string() ?: ""
@@ -124,16 +141,36 @@ object MultiModelLlmClient {
                                 if (!text.isNullOrBlank()) return@withContext text
                             }
                         } catch (e: Exception) {
-                            // Fallback to raw response
+                            Log.w("MultiModelLlmClient", "Pollinations JSON parse fallback: ${e.message}")
                         }
                     }
                     return@withContext bodyStr
                 } else {
-                    return@withContext "Pollinations AI Error: HTTP ${response.code} ${response.message}"
+                    Log.e("MultiModelLlmClient", "Pollinations AI Error: HTTP ${response.code} ${response.message} body=$bodyStr")
+                    val parsedErrorMsg = try {
+                        if (bodyStr.trim().startsWith("{")) {
+                            val json = JSONObject(bodyStr)
+                            val errObj = json.optJSONObject("error")
+                            if (errObj != null) {
+                                val code = errObj.optString("code", "")
+                                val msg = errObj.optString("message", "")
+                                if (code.isNotBlank() || msg.isNotBlank()) "Error[$code]: $msg" else bodyStr
+                            } else {
+                                val msg = json.optString("message", "")
+                                val detail = json.optString("detail", "")
+                                val errStr = json.optString("error", "")
+                                listOf(msg, detail, errStr).firstOrNull { it.isNotBlank() } ?: bodyStr
+                            }
+                        } else bodyStr
+                    } catch (e: Exception) {
+                        bodyStr.ifBlank { response.message }
+                    }
+                    return@withContext "Pollinations AI Error: HTTP ${response.code} - $parsedErrorMsg"
                 }
             }
         } catch (e: Exception) {
-            return@withContext "Pollinations AI Error: ${e.localizedMessage ?: e.message}"
+            Log.e("MultiModelLlmClient", "Pollinations AI Exception (${e.javaClass.simpleName}): ${e.localizedMessage}", e)
+            return@withContext "Pollinations AI Error: ${e.javaClass.simpleName}: ${e.localizedMessage ?: e.message}\n${Log.getStackTraceString(e)}"
         }
     }
 
@@ -142,21 +179,29 @@ object MultiModelLlmClient {
         prompt: String,
         systemInstruction: String? = null
     ): String = withContext(Dispatchers.IO) {
+        val cleanKey = cleanApiKey(config.apiKey)
+        val maskedKeyStr = maskKey(cleanKey)
+        Log.d("MultiModelLlmClient", "queryLlm VALIDATION: provider=${config.provider.displayName}, baseUrl='${config.baseUrl}', model='${config.modelName}', key='$maskedKeyStr'")
+
         if (config.provider == LlmProvider.POLLINATIONS_AI) {
-            return@withContext queryPollinationsAiText(prompt, systemInstruction, config.modelName)
+            return@withContext queryPollinationsAiText(prompt, systemInstruction, config.modelName, config.apiKey)
         }
 
         if (config.provider == LlmProvider.GEMINI) {
-            if (config.apiKey.isBlank()) {
-                // Auto fallback to Pollinations AI when Gemini API key is not configured
-                return@withContext queryPollinationsAiText(prompt, systemInstruction, "openai")
+            if (cleanKey.isBlank()) {
+                val buildConfigKey = try { com.example.BuildConfig.GEMINI_API_KEY } catch (e: Exception) { "" }
+                if (buildConfigKey.isBlank() || buildConfigKey == "MY_GEMINI_API_KEY") {
+                    Log.d("MultiModelLlmClient", "No Gemini API key provided, falling back to Pollinations AI")
+                    return@withContext queryPollinationsAiText(prompt, systemInstruction, "openai", config.apiKey)
+                }
             }
             return@withContext GeminiClient.queryGemini(config, prompt, systemInstruction)
         }
 
-        if (config.apiKey.isBlank()) {
+        if (cleanKey.isBlank()) {
             // Auto fallback to Pollinations AI for free public access when no API key is provided
-            return@withContext queryPollinationsAiText(prompt, systemInstruction, "openai")
+            Log.d("MultiModelLlmClient", "No API key provided for ${config.provider.displayName}, falling back to Pollinations AI")
+            return@withContext queryPollinationsAiText(prompt, systemInstruction, "openai", config.apiKey)
         }
 
         try {
@@ -182,15 +227,18 @@ object MultiModelLlmClient {
                 messages = messages
             )
 
+            Log.d("MultiModelLlmClient", "Sending OpenAI request to $endpointUrl model=${req.model}")
             val res = api.createChatCompletion(endpointUrl, authHeader, req)
             val replyText = res.choices?.firstOrNull()?.message?.content
             replyText ?: "No response from ${config.provider.displayName}"
         } catch (e: retrofit2.HttpException) {
             val errorBodyStr = try { e.response()?.errorBody()?.string() } catch (ex: Exception) { null }
+            Log.e("MultiModelLlmClient", "queryLlm HttpException code=${e.code()} msg=${e.message()} body=$errorBodyStr", e)
             val detail = if (!errorBodyStr.isNullOrBlank()) errorBodyStr else e.message()
             "API_ERROR [${config.provider.name} HTTP ${e.code()}]: $detail"
         } catch (e: Exception) {
-            "API_ERROR [${config.provider.name}]: ${e.localizedMessage ?: e.message}"
+            Log.e("MultiModelLlmClient", "queryLlm Exception: ${e.localizedMessage}", e)
+            "API_ERROR [${config.provider.name} ${e.javaClass.simpleName}]: ${e.localizedMessage ?: e.message}\n${Log.getStackTraceString(e)}"
         }
     }
 

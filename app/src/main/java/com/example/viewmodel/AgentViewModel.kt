@@ -36,6 +36,7 @@ data class AgentUiState(
     val isTelegramConnected: Boolean = false,
     val telegramBotName: String? = null,
     val isTestingTelegram: Boolean = false,
+    val telegramErrorMessage: String? = null,
     val isChatLoading: Boolean = false,
     // Voice Command Control State
     val isListeningVoice: Boolean = false,
@@ -403,11 +404,14 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
     fun testAndConnectTelegramBot() {
         val token = _uiState.value.telegramBotToken.trim()
         if (token.isBlank()) {
-            _uiState.value = _uiState.value.copy(snackbarMessage = "Please enter a valid Telegram Bot Token")
+            _uiState.value = _uiState.value.copy(
+                telegramErrorMessage = "Please enter a valid Telegram Bot Token",
+                snackbarMessage = "Please enter a valid Telegram Bot Token"
+            )
             return
         }
 
-        _uiState.value = _uiState.value.copy(isTestingTelegram = true)
+        _uiState.value = _uiState.value.copy(isTestingTelegram = true, telegramErrorMessage = null)
 
         viewModelScope.launch {
             val result = TelegramBotManager.verifyBotToken(token)
@@ -416,6 +420,7 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
                     isTestingTelegram = false,
                     isTelegramConnected = true,
                     telegramBotName = "@${user.username ?: user.firstName}",
+                    telegramErrorMessage = null,
                     snackbarMessage = "Connected to Telegram Bot: @${user.username ?: user.firstName}"
                 )
 
@@ -438,10 +443,12 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 )
             }.onFailure { err ->
+                val errorMsg = err.localizedMessage ?: err.message ?: "Unknown Telegram connection error"
                 _uiState.value = _uiState.value.copy(
                     isTestingTelegram = false,
                     isTelegramConnected = false,
-                    snackbarMessage = "Telegram Connection Failed: ${err.message}"
+                    telegramErrorMessage = errorMsg,
+                    snackbarMessage = "Telegram Connection Failed: $errorMsg"
                 )
             }
         }
@@ -451,15 +458,27 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
         val token = _uiState.value.telegramBotToken.trim()
         val chatId = _uiState.value.telegramChatId.trim()
         if (token.isBlank() || chatId.isBlank()) {
-            _uiState.value = _uiState.value.copy(snackbarMessage = "Set Telegram Token & Chat ID first")
+            _uiState.value = _uiState.value.copy(
+                telegramErrorMessage = "Set Telegram Token & Chat ID first",
+                snackbarMessage = "Set Telegram Token & Chat ID first"
+            )
             return
         }
 
         viewModelScope.launch {
-            val ok = TelegramBotManager.sendTelegramNotification(token, chatId, text)
-            _uiState.value = _uiState.value.copy(
-                snackbarMessage = if (ok) "Sent Telegram broadcast!" else "Telegram broadcast failed"
-            )
+            val res = TelegramBotManager.sendTelegramNotificationDetailed(token, chatId, text)
+            res.onSuccess {
+                _uiState.value = _uiState.value.copy(
+                    telegramErrorMessage = null,
+                    snackbarMessage = "Sent Telegram broadcast!"
+                )
+            }.onFailure { err ->
+                val errorMsg = err.localizedMessage ?: err.message ?: "Broadcast failed"
+                _uiState.value = _uiState.value.copy(
+                    telegramErrorMessage = "Broadcast failed: $errorMsg",
+                    snackbarMessage = "Telegram broadcast failed: $errorMsg"
+                )
+            }
         }
     }
 
