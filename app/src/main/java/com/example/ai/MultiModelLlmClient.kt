@@ -70,6 +70,14 @@ object MultiModelLlmClient {
             .create(OpenAiCompatibleApi::class.java)
     }
 
+    fun cleanApiKey(key: String): String {
+        var k = key.trim().removeSurrounding("\"").removeSurrounding("'")
+        if (k.startsWith("Bearer ", ignoreCase = true)) {
+            k = k.substring(7).trim()
+        }
+        return k
+    }
+
     suspend fun queryLlm(
         config: LlmConfiguration,
         prompt: String,
@@ -80,7 +88,7 @@ object MultiModelLlmClient {
         }
 
         try {
-            val cleanBase = config.baseUrl.trim()
+            val cleanBase = config.baseUrl.trim().removeSurrounding("\"").removeSurrounding("'")
             val endpointUrl = when {
                 cleanBase.endsWith("/chat/completions") -> cleanBase
                 cleanBase.endsWith("/chat/completions/") -> cleanBase.removeSuffix("/")
@@ -88,8 +96,8 @@ object MultiModelLlmClient {
                 else -> "${cleanBase}/chat/completions"
             }
 
-            val rawKey = config.apiKey.trim()
-            val authHeader = if (rawKey.isNotBlank()) "Bearer $rawKey" else null
+            val cleanKey = cleanApiKey(config.apiKey)
+            val authHeader = if (cleanKey.isNotBlank()) "Bearer $cleanKey" else null
 
             val messages = mutableListOf<ChatMessage>()
             if (!systemInstruction.isNullOrBlank()) {

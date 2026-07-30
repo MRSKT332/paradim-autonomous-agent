@@ -74,9 +74,17 @@ object GeminiClient {
             .create(GeminiApi::class.java)
     }
 
+    private fun cleanApiKey(key: String): String {
+        var k = key.trim().removeSurrounding("\"").removeSurrounding("'")
+        if (k.startsWith("Bearer ", ignoreCase = true)) {
+            k = k.substring(7).trim()
+        }
+        return k
+    }
+
     suspend fun queryGemini(config: LlmConfiguration, prompt: String, systemInstruction: String? = null): String = withContext(Dispatchers.IO) {
-        val userKey = config.apiKey.trim()
-        val buildConfigKey = try { BuildConfig.GEMINI_API_KEY } catch (e: Exception) { "" }
+        val userKey = cleanApiKey(config.apiKey)
+        val buildConfigKey = cleanApiKey(try { BuildConfig.GEMINI_API_KEY } catch (e: Exception) { "" })
         val apiKey = if (userKey.isNotBlank()) userKey else buildConfigKey
 
         if (apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY") {

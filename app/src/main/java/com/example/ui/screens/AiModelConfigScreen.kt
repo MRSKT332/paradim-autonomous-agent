@@ -51,11 +51,15 @@ fun AiModelConfigScreen(
     }
 
     fun saveSettings() {
+        val cleanedKey = apiKeyInput.trim().removeSurrounding("\"").removeSurrounding("'")
+        val cleanedBase = baseUrlInput.trim().removeSurrounding("\"").removeSurrounding("'")
+        val cleanedModel = modelNameInput.trim().removeSurrounding("\"").removeSurrounding("'")
+
         val newConfig = LlmConfiguration(
             provider = selectedProvider,
-            apiKey = apiKeyInput.trim(),
-            baseUrl = baseUrlInput.trim(),
-            modelName = modelNameInput.trim()
+            apiKey = cleanedKey,
+            baseUrl = cleanedBase,
+            modelName = cleanedModel
         )
         LlmConfigManager.saveConfig(context, newConfig)
         currentConfig = newConfig

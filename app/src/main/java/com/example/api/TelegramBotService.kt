@@ -107,23 +107,43 @@ object TelegramBotManager {
             .create(TelegramApi::class.java)
     }
 
+    fun cleanToken(rawToken: String): String {
+        var t = rawToken.trim().removeSurrounding("\"").removeSurrounding("'")
+        if (t.startsWith("bot", ignoreCase = true) && t.length > 3 && t[3].isDigit()) {
+            t = t.substring(3).trim()
+        }
+        return t
+    }
+
     suspend fun verifyBotToken(token: String): Result<TelegramUser> = withContext(Dispatchers.IO) {
+        val clean = cleanToken(token)
+        if (clean.isBlank()) {
+            return@withContext Result.failure(Exception("Telegram Bot Token is empty"))
+        }
         try {
-            val response = retrofitService.getMe(token)
+            val response = retrofitService.getMe(clean)
             if (response.ok && response.result != null) {
                 Result.success(response.result)
             } else {
-                Result.failure(Exception("Invalid Bot Token or Telegram API Error"))
+                Result.failure(Exception("Telegram API Error: invalid response"))
             }
+        } catch (e: retrofit2.HttpException) {
+            val errBody = try { e.response()?.errorBody()?.string() } catch (ex: Exception) { null }
+            val detail = if (!errBody.isNullOrBlank()) errBody else e.message()
+            Result.failure(Exception("Telegram HTTP ${e.code()}: $detail"))
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception("Telegram Connection Error: ${e.localizedMessage ?: e.message}"))
         }
     }
 
     suspend fun sendTelegramNotification(token: String, chatId: String, message: String): Boolean = withContext(Dispatchers.IO) {
+        val cleanTok = cleanToken(token)
+        val cleanChat = chatId.trim().removeSurrounding("\"").removeSurrounding("'")
+        if (cleanTok.isBlank() || cleanChat.isBlank()) return@withContext false
+
         try {
-            val req = TelegramSendMessageRequest(chatId = chatId, text = message)
-            val res = retrofitService.sendMessage(token, req)
+            val req = TelegramSendMessageRequest(chatId = cleanChat, text = message)
+            val res = retrofitService.sendMessage(cleanTok, req)
             res.ok
         } catch (e: Exception) {
             false
@@ -131,9 +151,12 @@ object TelegramBotManager {
     }
 
     suspend fun fetchLatestBotCommands(token: String, lastUpdateId: Long?): List<TelegramUpdate> = withContext(Dispatchers.IO) {
+        val cleanTok = cleanToken(token)
+        if (cleanTok.isBlank()) return@withContext emptyList()
+
         try {
             val offset = if (lastUpdateId != null) lastUpdateId + 1 else null
-            val res = retrofitService.getUpdates(token = token, offset = offset)
+            val res = retrofitService.getUpdates(token = cleanTok, offset = offset)
             if (res.ok) res.result ?: emptyList() else emptyList()
         } catch (e: Exception) {
             emptyList()
